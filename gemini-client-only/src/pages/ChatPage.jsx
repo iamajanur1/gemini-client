@@ -1,122 +1,154 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import Header from "../components/Header.jsx";
-import ChatWindow from "../components/ChatWindow.jsx";
-import MessageInput from "../components/MessageInput.jsx";
-import { sendToGemini } from "../geminiClient.js";
-import { deriveTitle, loadChats, saveChats, createChat } from "../storage.js";
-import "../App.css";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { SendHorizonal, Mic, Paperclip } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  createNewChat,
+  getChatById,
+  saveChat,
+  updateChatTitleFromFirstMessage,
+} from "../utils/chatStore";
+import { geminiMockReply } from "../utils/geminiMock";
+
 export default function ChatPage() {
-  const { id } = useParams();
+  const { chatId } = useParams();
   const navigate = useNavigate();
-  const [allChats, setAllChats] = useState(() => loadChats());
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
 
-  // Ensure a chat exists for this id; if not, create and redirect.
+  const currentChat = useMemo(() => getChatById(chatId), [chatId]);
+
   useEffect(() => {
-    const exists = allChats.find((c) => c.id === id);
-    if (!exists && id) {
-      const c = createChat();
-      c.id = id; // adopt requested id
-      const next = [c, ...allChats];
-      setAllChats(next);
-      saveChats(next);
+    if (!currentChat) {
+      const newChat = createNewChat();
+      navigate(`/chat/${newChat.id}`, { replace: true });
     }
-  }, [id]); // eslint-disable-line
+  }, [currentChat, navigate]);
 
-  const chat = useMemo(() => allChats.find((c) => c.id === id), [allChats, id]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState(currentChat?.messages || []);
 
-  const updateChat = (updater) => {
-    setAllChats((prev) => {
-      const next = prev.map((c) => (c.id === id ? updater(c) : c));
-      saveChats(next);
-      return next;
-    });
-  };
+  useEffect(() => {
+    setMessages(currentChat?.messages || []);
+  }, [chatId, currentChat]);
 
-  const handleSend = async (text) => {
-    if (!chat || loading) return;
-    const prompt = text.trim();
-    if (!prompt) return;
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
+  if (!currentChat) return null;
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || loading) return;
+
+    setInput("");
     setLoading(true);
-    setError("");
 
-    const userMsg = { id: crypto.randomUUID(), role: "user", content: prompt };
-    const assistantMsg = { id: crypto.randomUUID(), role: "assistant", content: "", typing: true };
+    const userMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
 
-    updateChat((c) => ({
-      ...c,
-      messages: [...c.messages, userMsg, assistantMsg],
-      updatedAt: Date.now(),
-      title: c.title === "New chat" ? deriveTitle([...c.messages, userMsg]) : c.title,
-    }));
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
+
+    const updatedChat = {
+      ...currentChat,
+      messages: nextMessages,
+      updatedAt: new Date().toISOString(),
+    };
+
+    updateChatTitleFromFirstMessage(updatedChat, text);
+    saveChat(updatedChat);
 
     try {
-      const history = chat.messages; // take current snapshot
-      const answer = await sendToGemini({ history, userText: prompt });
+      const replyText = await geminiMockReply(text, nextMessages);
 
-      updateChat((c) => ({
-        ...c,
-        messages: c.messages.map((m) =>
-          m.id === assistantMsg.id ? { ...m, content: answer || "(no content)", typing: false } : m
-        ),
-        updatedAt: Date.now(),
-      }));
-    } catch (e) {
-      console.error(e);
-      setError("Request failed. Check API key and network.");
-      updateChat((c) => ({
-        ...c,
-        messages: c.messages.map((m) =>
-          m.id === assistantMsg.id
-            ? { ...m, content: "Error: failed to get response.", typing: false }
-            : m
-        ),
-        updatedAt: Date.now(),
-      }));
-      setTimeout(() => setError(""), 3500);
+      const assistantMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: replyText,
+        createdAt: new Date().toISOString(),
+      };
+
+      const finalMessages = [...nextMessages, assistantMessage];
+      setMessages(finalMessages);
+
+      saveChat({
+        ...updatedChat,
+        messages: finalMessages,
+        updatedAt: new Date().toISOString(),
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNewChat = () => {
-    const c = createChat();
-    const next = [c, ...allChats];
-    setAllChats(next);
-    saveChats(next);
-    navigate(`/chat/${c.id}`);
-  };
-
-  if (!chat) {
-    return (
-      <div className="app">
-        <header className="header">
-          <div className="brand">
-            <span className="logo">✨</span>
-            <span className="title">Loading chat…</span>
-          </div>
-          <div className="actions">
-            <Link className="btn" to="/">Chats</Link>
-          </div>
-        </header>
-        <main className="chat-window" />
-      </div>
-    );
-  }
-
   return (
-    <div className="app">
-      <Header
-        loading={loading}
-        onNewChat={handleNewChat}
-        onBackToChats={() => navigate("/")}
-      />
-      {error ? <div className="toast error">{error}</div> : null}
-      <ChatWindow messages={chat.messages} />
-      <MessageInput onSend={handleSend} disabled={loading} />
+    <div className="chat-page">
+      <div className="chat-messages">
+        {messages.length === 0 ? (
+          <div className="chat-empty-state">
+            <div className="chat-empty-badge">AI</div>
+            <div className="chat-empty-box">
+              <div className="chat-empty-title">Ready when you are.</div>
+              <div className="chat-empty-text">
+                Ask anything. This layout is built to feel closer to Gemini.
+              </div>
+            </div>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`message-row ${msg.role === "user" ? "user" : "assistant"}`}
+            >
+              <div className="message-avatar">
+                {msg.role === "user" ? "👤" : "🤖"}
+              </div>
+              <div className={`message-bubble ${msg.role}`}>
+                {msg.content}
+              </div>
+            </div>
+          ))
+        )}
+
+        {loading ? (
+          <div className="message-row assistant">
+            <div className="message-avatar">🤖</div>
+            <div className="message-bubble assistant typing">
+              Thinking...
+            </div>
+          </div>
+        ) : null}
+
+        <div ref={bottomRef} />
+      </div>
+
+      <form className="chat-composer" onSubmit={handleSend}>
+        <button type="button" className="composer-icon-btn" title="Attach">
+          <Paperclip size={18} />
+        </button>
+
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask Gemini anything..."
+          className="composer-input"
+        />
+
+        <button type="button" className="composer-icon-btn" title="Voice">
+          <Mic size={18} />
+        </button>
+
+        <button type="submit" className="composer-send-btn" disabled={loading}>
+          <SendHorizonal size={16} />
+          <span>Send</span>
+        </button>
+      </form>
     </div>
   );
 }

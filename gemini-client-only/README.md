@@ -1,12 +1,34 @@
-# React + Vite
+# Gemini Chat
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Vite + React chat client with saved local conversations and a Vercel serverless API route for Gemini.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Create a local `.env` file:
 
-## Expanding the ESLint configuration
+```bash
+GEMINI_API_KEY=your_google_ai_studio_key
+VITE_GEMINI_API_KEY=your_google_ai_studio_key
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+`GEMINI_API_KEY` is used by the Vercel function in `api/chat.js`. `VITE_GEMINI_API_KEY` is only a local development fallback for `npm run dev`, where Vite does not run Vercel functions.
+
+Optional:
+
+```bash
+GEMINI_MODEL=gemini-2.5-flash
+VITE_GEMINI_MODEL=gemini-2.5-flash
+```
+
+## Scripts
+
+```bash
+npm run dev
+npm run lint
+npm run build
+npm run preview
+```
+
+## Deploy
+
+In Vercel, add `GEMINI_API_KEY` to the project environment variables and redeploy. The browser calls `/api/chat`, so the production API key stays on the server.

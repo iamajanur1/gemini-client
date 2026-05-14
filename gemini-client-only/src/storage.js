@@ -27,7 +27,7 @@ export function createChat() {
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: "New chat started. Ask anything!",
+        content: "Ready when you are.",
       },
     ],
     createdAt: now,
@@ -40,5 +40,5 @@ export function deriveTitle(messages) {
   const firstUser = messages.find((m) => m.role === "user");
   if (!firstUser) return "New chat";
   const text = firstUser.content.trim().replace(/\s+/g, " ");
-  return text.length > 40 ? text.slice(0, 40) + "…" : text || "New chat";
+  return text.length > 40 ? `${text.slice(0, 40)}...` : text || "New chat";
 }

@@ -3,15 +3,23 @@ import MessageBubble from "./MessageBubble.jsx";
 
 export default function ChatWindow({ messages }) {
   const endRef = useRef(null);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
     <main className="chat-window">
-      {messages.map((m) => (
-        <MessageBubble key={m.id} role={m.role} content={m.content} typing={m.typing} />
-      ))}
+      <div className="message-stack">
+        {messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            role={message.role}
+            content={message.content}
+            typing={message.typing}
+          />
+        ))}
+      </div>
       <div ref={endRef} />
     </main>
   );
