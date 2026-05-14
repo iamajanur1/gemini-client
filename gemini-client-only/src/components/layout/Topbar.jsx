@@ -21,22 +21,22 @@ export default function Topbar() {
           </button>
         ) : null}
 
-        <div>
+        <div className="topbar-title-wrap">
           <div className="topbar-title">
-            {chat ? chat.title : "Gemini Chat"}
+            {chat ? chat.title : "Gemini"}
           </div>
           <div className="topbar-subtitle">
-            {chat ? chat.subtitle || "Gemini 2.5 Flash" : "Workspace"}
+            {chat ? "Gemini 2.5 Flash" : "Where should we start?"}
           </div>
         </div>
       </div>
 
       <div className="topbar-actions">
-        <button className="ghost-pill">
+        <button className="pill-btn ghost">
           <Sparkles size={15} />
           <span>Chats</span>
         </button>
-        <button className="primary-pill" onClick={() => navigate("/")}>
+        <button className="pill-btn solid" onClick={() => navigate("/")}>
           + New
         </button>
       </div>

@@ -39,9 +39,11 @@ export function createNewChat() {
         id: crypto.randomUUID(),
         role: "assistant",
         content: "Ready when you are.",
+        createdAt: now,
       },
     ],
     createdAt: now,
+    updatedAt: now,
   };
 
   const chats = getChats();
@@ -58,11 +60,10 @@ export function deleteChatById(id) {
 export function updateChatTitleFromFirstMessage(chat, text) {
   if (chat.title !== "New chat") return;
 
-  const short =
-    text.length > 25 ? text.substring(0, 25) + "..." : text;
+  const short = text.length > 28 ? `${text.slice(0, 28)}...` : text;
 
   saveChat({
     ...chat,
-    title: short,
+    title: short || "New chat",
   });
 }

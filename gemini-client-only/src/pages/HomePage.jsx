@@ -1,45 +1,54 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { getChatById } from "../../utils/chatStore";
+import { useNavigate } from "react-router-dom";
+import { createNewChat, getChats } from "../utils/chatStore";
 
-export default function Topbar() {
-  const location = useLocation();
+export default function HomePage() {
   const navigate = useNavigate();
+  const chats = getChats();
 
-  const chatId = location.pathname.startsWith("/chat/")
-    ? location.pathname.split("/chat/")[1]
-    : null;
+  const handleStart = () => {
+    const chat = createNewChat();
+    navigate(`/chat/${chat.id}`);
+  };
 
-  const chat = chatId ? getChatById(chatId) : null;
+  const quickPrompts = [
+    "Help me write code",
+    "Explain something simply",
+    "Plan a project",
+    "Draft a message",
+  ];
 
   return (
-    <header className="topbar">
-      <div className="topbar-left">
-        {chatId ? (
-          <button className="back-btn" onClick={() => navigate("/")}>
-            <ArrowLeft size={18} />
+    <div className="home-page">
+      <section className="hero-card">
+        <div className="hero-kicker">WORKSPACE</div>
+        <h1>Where should we start?</h1>
+        <p>
+          A clean, calm workspace for fast answers, focused writing, and
+          natural chat flow.
+        </p>
+
+        <div className="hero-actions">
+          <button className="primary-action" onClick={handleStart}>
+            Start chat
           </button>
-        ) : null}
-
-        <div>
-          <div className="topbar-title">
-            {chat ? chat.title : "Gemini Chat"}
-          </div>
-          <div className="topbar-subtitle">
-            {chat ? chat.subtitle || "Gemini 2.5 Flash" : "Workspace"}
-          </div>
+          <button className="secondary-action" onClick={handleStart}>
+            Create first chat
+          </button>
         </div>
-      </div>
 
-      <div className="topbar-actions">
-        <button className="ghost-pill">
-          <Sparkles size={15} />
-          <span>Chats</span>
-        </button>
-        <button className="primary-pill" onClick={() => navigate("/")}>
-          + New
-        </button>
-      </div>
-    </header>
+        <div className="prompt-grid">
+          {quickPrompts.map((item) => (
+            <button key={item} className="prompt-chip" onClick={handleStart}>
+              {item}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-summary">
+        <div className="summary-title">Your conversations</div>
+        <div className="summary-count">{chats.length} saved chats</div>
+      </section>
+    </div>
   );
 }

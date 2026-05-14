@@ -15,7 +15,7 @@ export default function App() {
         }
       />
       <Route
-        path="/chat/:chatId"
+        path="/chat/:id"
         element={
           <MainLayout>
             <ChatPage />
